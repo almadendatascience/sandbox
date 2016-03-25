@@ -1,0 +1,220 @@
+---
+title: "Exploring College Data Set"
+author: "Almaden Data Science"
+date: "February 26, 2016"
+output: html_document
+---
+*****  
+
+```{r echo=FALSE}
+#stringAsFactors = TRUE, convert character vector to factors
+#factors -categorical variables. In College dataset, 1st column (name) and 'private' are a factor variable.  
+college = read.csv("college.csv",header=TRUE, sep=",", stringsAsFactors = TRUE)
+```
+
+##Problem Definition
+Graduation rate is a critical metric for any college.  Given this, we focus the exploratory analysis on Graduation Rate column of this data set. 
+
+##Visualizing Graduation Rates
+###Scatter Plot
+We begin by looking at the scatter plot of graduation rate.  
+```{r}
+plot(1:777,college$Grad.Rate, xlab='Colleges', ylab='Graduation Rate', main = 'Graduation Rates Scatter')
+```
+
+The only interesting aspect of this plot is the set of really low graduation rates for some colleges.
+
+###Histogram
+Next, we plot the histogram of the graduation rates, we find that the graduation rates are **seemingly** normally distributed.   
+
+```{r}
+hist(college$Grad.Rate, probability = FALSE, main='Graduation Rates')
+```
+
+The y axis provides a count of the colleges with corresponding grad.rate value on the x axis.
+
+We can also plot probabilities instead of count on the y axis as shown below.
+
+```{r}
+hist(college$Grad.Rate, probability = TRUE, xlab = 'Graduation Rates', ylab = 'probability', main='Graduation Rates')
+```
+
+Next, we overlay a normal curve with column mean and standard deviation derived from the summary statistics of graduation rate column.
+
+```{r}
+summary(college$Grad.Rate)
+```
+
+```{r}
+hist(college$Grad.Rate, probability = TRUE, xlab = 'Graduation Rate', ylab = 'probability', main= 'Graduation Rates')
+curve(dnorm(x, mean=mean(college$Grad.Rate), sd=sd(college$Grad.Rate)), add=TRUE)
+
+lines (density(college$Grad.Rate), colors=c("red"))
+
+```
+
+The resulting figure shows that normal distribution is a pretty good approximation of the (overlaid) normal curve.  
+
+Caution:   
+Unlike a normal curve, grad.rates strictly lies between 0 and 100%. The probability calculation using area under curve assume a true normal distribution that is asymptotic in nature.  Hence, by bounding the grad.rates, the actual probability will mostly be less than the calculated probability.
+
+##About Normality
+There are 
+
+The normality of graduation rates, allows us to make inferences about 
+
+a. probability of colleges with grad.rate between certain values, i.e., p(a < grad.rate < b), and 
+b. distribution of differences in grad.rates between Private and Public colleges or other **factor** variables.    
+
+##Inference (a) - Cumulative Density Function
+
+R gives us function **pnorm** for computing the probability of grad.rate being less than a specified value.  For example, P(60 < X < 70), where X is the grad.rate.
+
+```{r}
+range = c(60,70)
+p = pnorm(range, mean=mean(college$Grad.Rate), sd =sd(college$Grad.Rate))
+p
+```
+
+For better interpretation, we can convert derived probability to count as shown below,
+
+```{r}
+totalCount = sum(college$Grad.Rate)
+totalCount
+count.1 = (p[[1]] * totalCount)/100
+count.1
+```
+
+```{r}
+count.2 = (p[[2]] * totalCount)/100
+count.2
+```
+
+Number of colleges between the 
+```{r}
+  count = count.2 - count.1
+  count
+```
+
+**Interpretation**  
+
+p[[1]] - probability of grad.rate being less than 60
+p[[2]] - probability of grad.rate being less than 70
+
+We first convert these probabilities to count,where count is the number of college with grad.rate being less than 60 and 7- respectively.
+
+Taking the different, we get the count of colleges between 60 and 709.
+
+Note: We note that, as grad.rate is a continuous variable probability of grade.rate being equal to specific value is typically considered to be zero.   In case of continuous random variables, less than, or greater than, or between is more appropriate. 
+
+##Inference (b) - Distribution of differences in Graduation Rates between Private and Public colleges
+TBD
+
+*****
+
+##Correlation of Graduation Rates versus other columns  
+
+```{r}
+college.cor = college[,3:19]
+cor.df =  cor(college.cor)
+```
+
+Correlation (r) of grad.rates with other numeric columns in the first column of data set shown below.  The second column shows the r^2.  The sign associated with r gives the true direction of the linear relationship and r^2 gives the strength of the relationship.
+
+*****
+> It is interesting to note  
+a. grad.rates does not have a strong positive correlation with any of the other variables,  
+b. negative correlation with undergrad columns but a small positive correlation with PhD,  
+c. negative correlation with S.F.Ratio seems to in agreement with above observation as well.  
+
+
+```{r echo = FALSE}
+cor.test    = data.frame()
+```
+
+
+```{r echo=FALSE}
+cor.test[1,1] = cor.test(college$Apps,college$Grad.Rate)[[3]]
+cor.test[2,1] = cor.test(college$Accept,college$Grad.Rate)[[3]]
+cor.test[3,1] = cor.test(college$Enroll,college$Grad.Rate)[[3]]
+cor.test[4,1] = cor.test(college$Top10perc,college$Grad.Rate)[[3]]
+cor.test[5,1] = cor.test(college$Top25perc,college$Grad.Rate)[[3]]
+cor.test[6,1] = cor.test(college$F.Undergrad,college$Grad.Rate)[[3]]
+cor.test[7,1] = cor.test(college$P.Undergrad,college$Grad.Rate)[[3]]
+cor.test[8,1] = cor.test(college$Outstate,college$Grad.Rate)[[3]]
+cor.test[9,1] = cor.test(college$Room.Board,college$Grad.Rate)[[3]]
+cor.test[10,1] = cor.test(college$Books,college$Grad.Rate)[[3]]
+cor.test[11,1] = cor.test(college$Personal,college$Grad.Rate)[[3]]
+cor.test[12,1] = cor.test(college$PhD,college$Grad.Rate)[[3]]
+cor.test[13,1] = cor.test(college$Terminal,college$Grad.Rate)[[3]]
+cor.test[14,1] = cor.test(college$S.F.Ratio,college$Grad.Rate)[[3]]
+cor.test[15,1] = cor.test(college$perc.alumni,college$Grad.Rate)[[3]]
+cor.test[16,1] = cor.test(college$Expend,college$Grad.Rate)[[3]]
+
+```
+
+
+```{r}
+show.cor = cbind(cor.df[1:16, 17], cor.df[1:16, 17]^2, cor.test[1:15,1])
+colnames(show.cor) = c("Correlation (r)", "r^2", "p Value")
+show.cor
+```
+
+Based on a significance level of 0.05 and p values in last column of above table, we can deduce that columns Accept, Enroll and Books will likely not be in a model with Grad.Rate as an independent (y) value.
+
+Lets do a quick regression model between Grad.Rate as independent and remaining variables as dependent variables.  As expected the variables, Accept, Enroll, and Books have close to zero coefficients in the resulting regression model. We use this just for validation= purposes.
+
+```{r}
+reg.college = college[,-(1:2),drop=FALSE]
+reg.model = lm(Grad.Rate~., data=reg.college)
+reg.model
+
+```
+
+
+##Visualizing Correlations
+Let us plot grad.rate with an arbitrary selected positively and a negatively correlated column to demonstrate the relationship.  Also, just to further contrast the trend, we fit a regression line through the scatter plots.
+
+For regression, it is recommended to normalize the data. So lets first scale the data.      
+
+```{r}
+college.scaled = data.frame(scale(college.cor))
+```
+
+Next, we fit the regression lines through the 2 scatters.  
+```{r}
+
+plot(college.scaled$Grad.Rate, college.scaled$PhD, xlab='Graduation Rates', ylab = 'PhD', main = 'Graduation Rate vs PhD')
+abline(lm(Grad.Rate~PhD,data=college.scaled))
+
+plot(college.scaled$Grad.Rate,college.scaled$P.Undergrad, xlab='Graduation Rates', ylab = 'P.Undergrad', main = 'Graduation Rate vs P.Undergrad')
+abline(lm(Grad.Rate~P.Undergrad,data=college.scaled))
+
+```
+
+*****
+##Graduation Rates for Private/Public colleges
+A box plot of graduation rates segregated by private and public or non-private colleges indicates that  
+>
+a. median graduation rates are higher for Private colleges,
+b. there are under-performing private schools,
+c. there are over-performing public schools  
+  
+
+```{r}
+boxplot(Grad.Rate~Private,data=college)
+```
+
+
+##Underperforming Schools
+```{r}
+college.private = data.frame(subset(college, college$Private == 'Yes'))
+college.public = data.frame(subset(college, college$Private == 'No'))
+
+college.private.u = data.frame(subset(college.private, college.private$Grad.Rate < 25))
+
+college.public.u = data.frame(subset(college, college.public$Grad.Rate < 20))
+
+college.private.u
+college.public.u
+```
