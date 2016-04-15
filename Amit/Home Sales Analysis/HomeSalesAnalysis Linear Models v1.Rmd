@@ -1,0 +1,252 @@
+---
+title: "Home Sales Analysis (II) - Linear Models"
+output: html_document
+---
+
+
+```{r echo=FALSE, warning=FALSE, message=FALSE}
+library(ggplot2)
+library(DT)
+library(caret)
+library(MASS)
+library(leaps)
+```
+
+In this analysis, we develop Linear Regression Models for the homes listed for sale in Colorado.   The purpose is to do a deep dive into the nuts and bolts of the modeling process.  Our approach is to:  
+
+>  
+- develop insights into process of modeling for Linear Regression 
+- develop a model that works well on unseen data
+  
+Why Linear Regression?  
+The key reason for focusing on Linear Regression is interpretability of such models. Inferences drawn from such models can be explained relatively easily.   
+
+```{r echo=FALSE}
+files = c("2Zips_Cleaned.csv")
+```
+
+```{r echo=FALSE}
+data.2.na = read.csv(paste("data/",files[1],sep=""), stringsAsFactors = FALSE)
+```
+
+##Linear Model Selection
+There are 168 odd predictor variables in this data set that can potentially influence the list price. Selecting a model that yields prediction accuracy as well as interpretability is of primary importance. [**ISLR, chapter 6, section 6.1.3**] discusses 3 classes of methods to approach this problem:    
+
+>  
+* Subset Selection  
+* Shrinkage  
+* Dimension Reduction
+
+Before, we delve into the methods, we point out that the above are relevant only in dealing with adding/removing variables in linear context.  Hence are somewhat constrained.   Other approaches for model building will include:  
+>  
+- examining higher order terms,  
+- examining interaction between variables,  
+- having a domain expert examine the variable set and help determine relevant variables for the model.  
+
+###Subset Selection
+This involves selecting a group of predictors from the available set of predictors based on pre-defined criteria. There are 3 primary methods of choosing the predictors:  
+
+>  
+* Best subset selection
+* Stepwise selection  
+    + Forward
+    + Backward
+* Hybrid approaches
+
+####Best subset selection
+This is an exhaustive selection process where we fit regression models for each possible combination of predictor variables.  Best model for each k (=1,2,...n) predictors is selected using largest R^2 or smallest RSS.   Finally, among best model selected above, select the single best model using Cp, AIC, BIC or adjusted R^2.
+
+Of course, being an exhaustive selection process, it is mostly not feasible for all but smallest of the problems. 
+
+Note,as we increase the number of predictors in a model,  
+
+>  
+* RSS decreases initially then flattens out 
+* R^2 increases initially then flattens out 
+
+We demonstrate the above using our Housing Data:
+```{r echo=FALSE}
+rss.df = data.frame()
+r.squared.df = data.frame()
+model.df = data.frame()
+options(stringsAsFactors=F)
+```
+
+```{r echo=FALSE}
+lm.1 = lm(Curr.List.Price~SqFt, data=data.2.na)
+```
+
+```{r echo=FALSE}
+an = anova(lm.1)
+r.squared = summary(lm.1)$r.squared
+rss = c(an$`Sum Sq`[nrow(an)])
+
+model.df = rbind(model.df, "SqFt")
+rss.df = rbind(rss.df,rss)
+r.squared.df = rbind(r.squared.df,r.squared)
+```
+
+```{r echo=FALSE}
+lm.2 = lm(Curr.List.Price~SqFt+Beds, data=data.2.na)
+an = anova(lm.2)
+r.squared = summary(lm.2)$r.squared
+rss = c(an$`Sum Sq`[nrow(an)])
+
+model.df = rbind(model.df, "SqFt+Beds")
+rss.df = rbind(rss.df,rss)
+r.squared.df = rbind(r.squared.df,r.squared)
+```
+
+```{r echo=FALSE}
+lm.3 = lm(Curr.List.Price~SqFt+Beds+Baths, data=data.2.na)
+an = anova(lm.3)
+r.squared = summary(lm.3)$r.squared
+rss = c(an$`Sum Sq`[nrow(an)])
+
+model.df = rbind(model.df, "SqFt+Beds+Baths")
+rss.df = rbind(rss.df,rss)
+r.squared.df = rbind(r.squared.df,r.squared)
+```
+
+```{r echo=FALSE}
+lm.4 = lm(Curr.List.Price~SqFt+Beds+Baths+Spaces, data=data.2.na)
+an = anova(lm.4)
+r.squared = summary(lm.4)$r.squared
+rss = c(an$`Sum Sq`[nrow(an)])
+
+model.df = rbind(model.df, "SqFt+Beds+Baths+Spaces")
+rss.df = rbind(rss.df,rss)
+r.squared.df = rbind(r.squared.df,r.squared)
+
+```
+
+```{r echo=FALSE}
+lm.5 = lm(Curr.List.Price~SqFt+Beds+Baths+Spaces+Street.Type, data=data.2.na)
+an = anova(lm.5)
+r.squared = summary(lm.5)$r.squared
+rss = c(an$`Sum Sq`[nrow(an)])
+
+model.df = rbind(model.df, "SqFt+Beds+Baths+Spaces+Street Type")
+rss.df = rbind(rss.df,rss)
+r.squared.df = rbind(r.squared.df,r.squared)
+
+```
+
+```{r echo=FALSE}
+lm.6 = lm(Curr.List.Price~SqFt+Beds+Baths+Spaces+Street.Type+Style, data=data.2.na)
+an = anova(lm.6)
+r.squared = summary(lm.6)$r.squared
+rss = c(an$`Sum Sq`[nrow(an)])
+
+model.df = rbind(model.df, "SqFt+Beds+Baths+Spaces+Street.Type+Style")
+rss.df = rbind(rss.df,rss)
+r.squared.df = rbind(r.squared.df,r.squared)
+
+```
+
+
+```{r echo=FALSE}
+df = data.frame(model.df,r.squared.df,rss.df)
+names(df) = c("Model", "R-Squared", "RSS")
+df
+```
+
+```{r echo=FALSE}
+par(mfrow=c(1,2))
+plot(1:6,rss.df[,1], xlab="Number of Predictors", ylab = "RSS", type="l", col = "RED")
+plot(1:6,r.squared.df[,1], xlab="Number of Predictors", ylab = "R-Squared", type="l", col = "BLUE")
+```
+
+> Note:  
+
+- Ideally, for *Best Subset Selection*, we should look at all possible models given the number of predictors.  For example, 168 1-predictor models, (168c2) 2-predictor models, (168c3) 3-predictor models etc.   Above, we work with ONE instance of n-predictor (n=1,2,3,4) models and make the comparisons between RSS and R^2 just to illustrate the conceptual point. 
+- Downsides: Computationally inefficient for large p. Prone to overfitting with high variance of coefficients.   
+
+
+####All Subsets Selection in R
+R provides function **regsubsets** for subset selection.   In the plots below, we see that maximum adjusted R^2 and BIC is achieved by potentially leaving out **Beds** from the regression model.
+
+```{r echo=FALSE}
+leaps<-regsubsets(Curr.List.Price~SqFt+Beds+Baths+Spaces+City, data=data.2.na)
+# view results 
+plot(leaps, scale="adjr2")
+plot(leaps, scale="bic")
+summary(leaps)
+```
+
+------
+
+###Stepwise [Forward] Selection  
+Forward Selection is a hierarchical heuristic approach which drastically reduces the search space as compared to Subset Selection which is an exhaustive search process.   For example, with 20 predictors, **Best Subset** requires fitting 1,048,576 models versus 211  models for **Forward selection** [**ISLR, pp 208**].  An intuitive explanation for developing a model with 4-predictors is as follows:  
+
+```{r echo=FALSE}
+models =        c("M0","M1","M2","M3", "M4")
+startingModel = c("-","M0", "M1", "M2", "M3")
+fixed =         c("-","-","p3","p3 & p2", "p3 & p2 & p1")
+predictors =    c("-","p1/p2/p3/p4", "p1/p2/p4","p1/p4", "p4")
+selected =      c("-", "p3", "p2", "p1", "p4")
+comments =      c("Trivial with NO predictors", "{M0+p1} OR {M0+p2} OR {M0+p3} OR {M0+p4}","{M1+p1} OR {M1+p2} OR {M1+p4}", "{M2+p1} OR {M2+p4}", "{M3+p4}")
+
+forward.sel = as.data.frame(cbind(models,startingModel,fixed,predictors, comments, selected))
+
+names(forward.sel) = c("Model", "Starting Model", "Fixed Predictors", "AvailAble Predictors", "Possible Models", "Selected")
+
+datatable(forward.sel, rownames = FALSE, list(pagelength=1, dom = "t"))
+```
+
+>  At each step,  
+- select best model using min RSS or max R^2  
+- final model selection between {M0, M1, M2, M3, M4} -using cross validated prediction error, Cp (AIC), BOC, or adjusted R^2.
+
+####Stepwise [Forward] Regression in R
+```{r echo=FALSE}
+forward.selection <- lm(Curr.List.Price~SqFt+Beds+Baths+Spaces+City, data=data.2.na)
+step <- stepAIC(forward.selection, direction="both", trace=1)
+step$anova 
+
+leaps.f<-regsubsets(Curr.List.Price~SqFt+Beds+Baths+Spaces+City, data=data.2.na, method="forward")
+summary(leaps.f)
+
+```
+
+###Stepwise [Backward] Regression
+Similar to forward regression, backward regression is a heuristic.  It starts with all predictors in the model and iteratively removes the least useful predictor.  
+
+If n < p,  backward method cannot be used [**ISLR, pp. 204**].  Instead use Forward selection.
+
+###Choosing the Optimal Model
+Typically R^2 and RSS are used to determine the goodness of a regression fit on a given data set.  There are a couple of problems with this approach:  
+
+>  
+- the model with all the predictors will always have the lowest RSS and highest R^2,
+- we are fitting models to given data set (train) and minimizing the error therein.  What we really want is a model which minimizes the error on test data which the model has not seen before (test). 
+- we note that, train error can be a poor estimate of test error.
+
+There are couple of ways to approach this problem:   
+
+>  
+- adjust the train error to assist in estimating the test error.  This includes estimators such as: Cp, AIC, BIC, and adjusted R^2.  
+- use validation set or cross validation approach.  
+
+We believe, former approach was widely used earlier when computation was expensive.  This approach also had underlying assumptions which were needed to show that train error is an unbiased estimate of the test error.   The validation/cross validation approaches which are now possible due to computational efficiencies help us look at the actual test error rather than an estimate based on the methods mentioned above. At the same time, they allow us circumvent the underlying assumptions.
+
+####Test Error estimators  
+>  
+- **Cp** = (RSS + 2 * d *sigma(hat)^2)/n  
+where, sigma(hat)^2 - variance of epsilon and d - number of predictors
+Term - 2 * d * sigma(hat)^2 - can be considered to be a penalty proportional to d.  
+- **AIC** = Cp / sigma(hat)^2  
+- **BIC** = (RSS + log(n) * d * sigma(hat)^2),  note: log(n) > 2 when n > 7, so heavier penalty for greater number of predictors  
+- **Adjusted R^2** = 1 - [ ( RSS/(n-d-1) ) / ( TSS/(n-1) ) ]  
+Now, maximizing R^2 => minimizing RSS/(n-d-1).
+     Increasing d   => increasing RSS/(n-d-1) => decreasing adjusted R^2  
+So, adjusted R^2 *pays a price* for increasing the number of predictor variables.  
+
+Cp, AIC, BIC have strong theoretical justifications. 
+
+####Alternate - Validation/Cross Validation  
+These are resampling approaches which enable us to create train and test data sets thereby allowing a model developed using a train set to be validated against a test set.  [*ISLR, chapter 5*]
+
+
+##References
+[**ISLR**] - "An Introduction to Statistical Learning, with Applications in R", James Gareth ET AL, Springer, Chapter 6, pp 203-259.
